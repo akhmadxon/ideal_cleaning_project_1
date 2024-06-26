@@ -1,9 +1,9 @@
-import { Button, Typography } from "@mui/material";
+import { Button, Typography, Box, Modal } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import { useState } from "react";
 import { auth } from "@service";
 import { useNavigate } from "react-router-dom";
-import { Formik, Form } from "formik";
+import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,9 +17,18 @@ const validationSchema = Yup.object().shape({
         .required("Password is required"),
 });
 
+const codeValidationSchema = Yup.object().shape({
+    code: Yup.string()
+        .required("Code is required"),
+    newPassword: Yup.string()
+        .min(6, "Password must be at least 6 characters")
+        .required("New password is required"),
+});
+
 const Index = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
+    const [codeModalOpen, setCodeModalOpen] = useState(false);
 
     const handleSubmit = async (values, { setSubmitting }) => {
         try {
@@ -46,6 +55,7 @@ const Index = () => {
     };
 
     const handleForgotPassword = async () => {
+        setCodeModalOpen(true);
         try {
             const response = await auth.forgot_password({ email });
             if (response.status === 200) {
@@ -54,6 +64,23 @@ const Index = () => {
         } catch (error) {
             toast.error("Failed to send password reset code");
             console.log(error);
+        }
+    };
+
+    const handleCodeSubmit = async (values, { setSubmitting }) => {
+        try {
+            const response = await auth.reset_password(values);
+            if (response.status === 200) {
+                toast.success("Password reset successfully");
+                setCodeModalOpen(false);
+            } else {
+                toast.error("Failed to reset password");
+            }
+        } catch (error) {
+            toast.error("Failed to reset password");
+            console.log(error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -143,8 +170,64 @@ const Index = () => {
                     </Formik>
                 </div>
             </div>
+
+            <Modal open={codeModalOpen} onClose={() => setCodeModalOpen(false)}>
+                <Box sx={{ ...modalStyle }}>
+                    <h2>Enter Verification Code</h2>
+                    <Formik
+                        initialValues={{ code: "", newPassword: "" }}
+                        validationSchema={codeValidationSchema}
+                        onSubmit={handleCodeSubmit}
+                    >
+                        {({ isSubmitting }) => (
+                            <Form id="code-reset">
+                                <div className="form-group my-2">
+                                    <Field
+                                        as={TextField}
+                                        type="text"
+                                        label="Verification Code"
+                                        placeholder="Enter the code"
+                                        name="code"
+                                        fullWidth
+                                    />
+                                    <ErrorMessage name="code" component="div" className="text-danger" />
+                                </div>
+                                <div className="form-group my-2">
+                                    <Field
+                                        as={TextField}
+                                        type="password"
+                                        label="New Password"
+                                        placeholder="Enter new password"
+                                        name="newPassword"
+                                        fullWidth
+                                    />
+                                    <ErrorMessage name="newPassword" component="div" className="text-danger" />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    disabled={isSubmitting}
+                                >
+                                    Reset Password
+                                </Button>
+                            </Form>
+                        )}
+                    </Formik>
+                </Box>
+            </Modal>
         </>
     );
+};
+
+const modalStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    boxShadow: 24,
+    p: 4,
 };
 
 export default Index;
