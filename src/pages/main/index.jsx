@@ -1,11 +1,11 @@
-import { Outlet } from "react-router-dom";
+import "./index.css"
 
 const Index = () => {
-    return (
-        <>
-          <Outlet/>  
-        </>
-    );
-};
+	return (
+		<div>
+			<h1>main</h1>
+		</div>
+	)
+}
 
-export default Index;
+export default Index
